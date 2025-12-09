@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import clsx from 'clsx';
+import { useNotification } from '../../contexts/NotificationContext';
 import styles from './ResultPage.module.css';
 
 interface ResultPageState {
@@ -11,17 +12,21 @@ interface ResultPageState {
 export default function ResultPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { showNotification } = useNotification();
   const [copied, setCopied] = useState(false);
   
   const state = location.state as ResultPageState | null;
   const { imageUrl, imageLink } = state || {};
 
   useEffect(() => {
-    // Если данных нет, редиректим на главную
+    // Если данных нет, редиректим на страницу загрузки
     if (!imageUrl || !imageLink) {
-      navigate('/');
+      navigate('/upload');
+    } else {
+      // Показываем уведомление при входе на страницу
+      showNotification('Изображение успешно загружено!', 'success');
     }
-  }, [imageUrl, imageLink, navigate]);
+  }, [imageUrl, imageLink, navigate, showNotification]);
 
   if (!imageUrl || !imageLink) {
     return null;
@@ -31,6 +36,7 @@ export default function ResultPage() {
     try {
       await navigator.clipboard.writeText(imageLink);
       setCopied(true);
+      showNotification('Ссылка скопирована в буфер обмена', 'success');
       
       // Сброс состояния "скопировано" через 2 секунды
       setTimeout(() => {
@@ -59,7 +65,7 @@ export default function ResultPage() {
   };
 
   const handleBack = () => {
-    navigate('/');
+    navigate('/upload');
   };
 
   return (

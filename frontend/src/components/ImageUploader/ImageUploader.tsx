@@ -1,8 +1,8 @@
 import { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { validateImageFile } from '../../utils/validation';
 import { uploadImage } from '../../services/api';
+import { useNotification } from '../../contexts/NotificationContext';
 import ProgressBar from '../ProgressBar';
 import styles from './ImageUploader.module.css';
 
@@ -15,7 +15,7 @@ export default function ImageUploader() {
   const [isUploading, setIsUploading] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const navigate = useNavigate();
+  const { showNotification } = useNotification();
 
   const handleFileSelect = (file: File) => {
     setError(null);
@@ -80,23 +80,34 @@ export default function ImageUploader() {
     setUploadProgress(0);
 
     try {
-      const response = await uploadImage(selectedFile, (progress) => {
+      await uploadImage(selectedFile, (progress) => {
         setUploadProgress(progress);
       });
 
-      // Переход на страницу результата с данными
-      navigate('/result', {
-        state: {
-          imageUrl: preview,
-          imageLink: response.url,
-        },
-      });
+      // Показываем уведомление об успехе
+      showNotification('Изображение успешно загружено!', 'success');
+
+      // Очищаем форму
+      setSelectedFile(null);
+      setPreview(null);
+      setUploadProgress(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+
+      // Переход на страницу результата с данными (опционально)
+      // navigate('/result', {
+      //   state: {
+      //     imageUrl: preview,
+      //     imageLink: response.url,
+      //   },
+      // });
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : 'Произошла ошибка при загрузке изображения'
-      );
+      const errorMessage = err instanceof Error
+        ? err.message
+        : 'Произошла ошибка при загрузке изображения';
+      setError(errorMessage);
+      showNotification(errorMessage, 'error');
       setUploadProgress(null);
     } finally {
       setIsUploading(false);
