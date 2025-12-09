@@ -6,45 +6,40 @@ import styles from './Login.module.css';
 export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [isAdmin, setIsAdmin] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { loginUser, isAuthenticated, user } = useAuth();
+  const { loginUser, isAuthenticated, user, loading } = useAuth();
   const navigate = useNavigate();
 
   // Если уже авторизован, перенаправляем в зависимости от роли
   useEffect(() => {
-    if (isAuthenticated && user) {
+    if (!loading && isAuthenticated && user) {
       if (user.role === 'admin') {
-        navigate('/admin/users');
+        navigate('/admin/users', { replace: true });
       } else {
-        navigate('/upload');
+        navigate('/upload', { replace: true });
       }
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, user, loading, navigate]);
 
-  // Показываем null если уже авторизован (редирект обрабатывается в useEffect)
-  if (isAuthenticated) {
+  // Показываем null если уже авторизован
+  if (isAuthenticated || loading) {
     return null;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setLoading(true);
+    setIsSubmitting(true);
 
     try {
-      // Для тестирования: если чекбокс "админ" отмечен, используем admin/admin
-      const loginUsername = isAdmin ? 'admin' : username;
-      const loginPassword = isAdmin ? 'admin' : password;
-
-      await loginUser(loginUsername, loginPassword);
+      await loginUser(username, password);
       // Перенаправление будет обработано через useEffect после обновления user
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка входа');
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -61,7 +56,7 @@ export default function Login() {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              disabled={isAdmin || loading}
+              disabled={isSubmitting || loading}
               required
               minLength={3}
             />
@@ -74,28 +69,16 @@ export default function Login() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              disabled={isAdmin || loading}
+              disabled={isSubmitting || loading}
               required
               minLength={6}
             />
           </div>
 
-          <div className={styles.field}>
-            <label className={styles.checkboxLabel}>
-              <input
-                type="checkbox"
-                checked={isAdmin}
-                onChange={(e) => setIsAdmin(e.target.checked)}
-                disabled={loading}
-              />
-              <span>Войти как админ</span>
-            </label>
-          </div>
-
           {error && <div className={styles.error}>{error}</div>}
 
-          <button type="submit" disabled={loading} className={styles.button}>
-            {loading ? 'Вход...' : 'Войти'}
+          <button type="submit" disabled={isSubmitting || loading} className={styles.button}>
+            {isSubmitting || loading ? 'Вход...' : 'Войти'}
           </button>
         </form>
 

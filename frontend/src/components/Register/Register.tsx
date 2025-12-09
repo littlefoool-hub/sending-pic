@@ -7,25 +7,26 @@ export default function Register() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { registerUser, isAuthenticated, user } = useAuth();
+  const { registerUser, isAuthenticated, user, loading } = useAuth();
   const navigate = useNavigate();
 
   // Если уже авторизован, перенаправляем в зависимости от роли
   useEffect(() => {
-    if (isAuthenticated && user) {
+    if (!loading && isAuthenticated && user) {
       if (user.role === 'admin') {
-        navigate('/admin/users');
+        navigate('/admin/users', { replace: true });
       } else {
-        navigate('/upload');
+        navigate('/upload', { replace: true });
       }
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, user, loading, navigate]);
 
   // Показываем null если уже авторизован
-  if (isAuthenticated) {
+  if (isAuthenticated || loading) {
     return null;
   }
 
@@ -49,15 +50,28 @@ export default function Register() {
       return;
     }
 
-    setLoading(true);
+    setIsSubmitting(true);
 
     try {
-      await registerUser(username, password);
+      // Если галочка "админ" отмечена, регистрируем как админ
+      await registerUser(username, password, isAdmin ? 'admin' : 'user');
       // Перенаправление будет обработано через useEffect после обновления user
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка регистрации');
+      let errorMessage = 'Ошибка регистрации';
+      if (err instanceof Error) {
+        if (err.message.includes('username already exists') || err.message.includes('already exists')) {
+          errorMessage = 'Пользователь с таким именем уже существует';
+        } else if (err.message.includes('at least 3')) {
+          errorMessage = 'Имя пользователя должно содержать минимум 3 символа';
+        } else if (err.message.includes('at least 6')) {
+          errorMessage = 'Пароль должен содержать минимум 6 символов';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      setError(errorMessage);
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -74,7 +88,7 @@ export default function Register() {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              disabled={loading}
+              disabled={isSubmitting || loading}
               required
               minLength={3}
             />
@@ -87,7 +101,7 @@ export default function Register() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              disabled={loading}
+              disabled={isSubmitting || loading}
               required
               minLength={6}
             />
@@ -100,16 +114,28 @@ export default function Register() {
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              disabled={loading}
+              disabled={isSubmitting || loading}
               required
               minLength={6}
             />
           </div>
 
+          <div className={styles.field}>
+            <label className={styles.checkboxLabel}>
+              <input
+                type="checkbox"
+                checked={isAdmin}
+                onChange={(e) => setIsAdmin(e.target.checked)}
+                disabled={isSubmitting || loading}
+              />
+              <span>Зарегистрироваться как админ</span>
+            </label>
+          </div>
+
           {error && <div className={styles.error}>{error}</div>}
 
-          <button type="submit" disabled={loading} className={styles.button}>
-            {loading ? 'Регистрация...' : 'Зарегистрироваться'}
+          <button type="submit" disabled={isSubmitting || loading} className={styles.button}>
+            {isSubmitting || loading ? 'Регистрация...' : 'Зарегистрироваться'}
           </button>
         </form>
 

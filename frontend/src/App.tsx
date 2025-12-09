@@ -6,7 +6,7 @@ import NotificationContainer from './components/Notification';
 import Login from './components/Login';
 import Register from './components/Register';
 import ImageUploader from './components/ImageUploader';
-import ResultPage from './components/ResultPage';
+import Unauthorized from './components/Unauthorized';
 import { AdminUsers, UserImages } from './components/Admin';
 import './App.css';
 
@@ -26,7 +26,7 @@ function App() {
           <Route
             path="/upload"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requireUser>
                 <Header />
                 <ImageUploader />
               </ProtectedRoute>
@@ -34,13 +34,8 @@ function App() {
           />
           
           <Route
-            path="/result"
-            element={
-              <ProtectedRoute>
-                <Header />
-                <ResultPage />
-              </ProtectedRoute>
-            }
+            path="/unauthorized"
+            element={<Unauthorized />}
           />
           
           <Route

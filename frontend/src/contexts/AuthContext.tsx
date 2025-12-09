@@ -14,7 +14,7 @@ interface AuthContextType {
   isAdmin: boolean;
   loading: boolean;
   loginUser: (username: string, password: string) => Promise<void>;
-  registerUser: (username: string, password: string) => Promise<void>;
+  registerUser: (username: string, password: string, role?: string) => Promise<void>;
   logoutUser: () => Promise<void>;
   checkAuth: () => Promise<void>;
 }
@@ -42,6 +42,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const currentUser = await getCurrentUser();
       setUser(currentUser);
     } catch (error) {
+      // Если ошибка авторизации, очищаем пользователя
       setUser(null);
     } finally {
       setLoading(false);
@@ -58,8 +59,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Перенаправление будет обработано в компонентах Login/Register
   };
 
-  const registerUser = async (username: string, password: string) => {
-    await register(username, password);
+  const registerUser = async (username: string, password: string, role: string = 'user') => {
+    await register(username, password, role);
     // После регистрации автоматически логинимся
     await loginUser(username, password);
     // Перенаправление будет обработано в компонентах Login/Register

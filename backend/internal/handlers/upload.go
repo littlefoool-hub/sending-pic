@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"image-uploader-backend/internal/middleware"
 	"image-uploader-backend/internal/models"
 	"image-uploader-backend/internal/service"
 	"net/http"
@@ -20,16 +21,8 @@ func NewUploadHandler(imageService *service.ImageService) *UploadHandler {
 
 func (h *UploadHandler) UploadImage(c echo.Context) error {
 	// Получаем текущего пользователя из контекста
-	user := c.Get("user")
+	user := middleware.GetCurrentUser(c)
 	if user == nil {
-		return c.JSON(http.StatusUnauthorized, models.ErrorResponse{
-			Error: "Unauthorized",
-			Code:  "UNAUTHORIZED",
-		})
-	}
-
-	userModel, ok := user.(*models.User)
-	if !ok {
 		return c.JSON(http.StatusUnauthorized, models.ErrorResponse{
 			Error: "Unauthorized",
 			Code:  "UNAUTHORIZED",
@@ -54,7 +47,7 @@ func (h *UploadHandler) UploadImage(c echo.Context) error {
 	}
 
 	// Сохраняем файл с привязкой к пользователю
-	image, err := h.imageService.SaveFile(file, userModel.ID)
+	image, err := h.imageService.SaveFile(file, user.ID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Error: "Failed to save image",

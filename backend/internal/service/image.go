@@ -30,6 +30,11 @@ func NewImageService(repo *repository.ImageRepository, cfg *config.Config) *Imag
 	}
 }
 
+// buildImageURL формирует URL для изображения на основе относительного пути
+func (s *ImageService) buildImageURL(relPath string) string {
+	return fmt.Sprintf("%s/images/%s", s.config.BaseURL, relPath)
+}
+
 func (s *ImageService) ValidateFile(file *multipart.FileHeader) error {
 	// Проверка размера
 	if file.Size > s.config.MaxFileSize {
@@ -96,6 +101,9 @@ func (s *ImageService) SaveFile(file *multipart.FileHeader, userID string) (*mod
 		mimeType = "application/octet-stream"
 	}
 
+	// Формируем относительный путь для URL
+	relPath := strings.ReplaceAll(datePath, string(filepath.Separator), "/") + "/" + fileName
+
 	// Создаем объект изображения
 	image := &models.Image{
 		UserID:       userID,
@@ -104,7 +112,7 @@ func (s *ImageService) SaveFile(file *multipart.FileHeader, userID string) (*mod
 		FilePath:     filePath,
 		MimeType:     mimeType,
 		Size:         file.Size,
-		URL:          fmt.Sprintf("%s/images/%s/%s", s.config.BaseURL, datePath, fileName),
+		URL:          s.buildImageURL(relPath),
 	}
 
 	// Сохраняем в БД
@@ -117,36 +125,6 @@ func (s *ImageService) SaveFile(file *multipart.FileHeader, userID string) (*mod
 	return image, nil
 }
 
-func (s *ImageService) GetByID(id string) (*models.Image, error) {
-	image, err := s.repo.GetByID(id)
-	if err != nil {
-		return nil, err
-	}
-
-	// Формируем URL
-	relPath := strings.TrimPrefix(image.FilePath, s.config.UploadDir+string(filepath.Separator))
-	relPath = strings.ReplaceAll(relPath, string(filepath.Separator), "/")
-	image.URL = fmt.Sprintf("%s/images/%s", s.config.BaseURL, relPath)
-
-	return image, nil
-}
-
-func (s *ImageService) GetAll(limit, offset int) ([]*models.Image, error) {
-	images, err := s.repo.GetAll(limit, offset)
-	if err != nil {
-		return nil, err
-	}
-
-	// Формируем URLs для всех изображений
-	for _, image := range images {
-		relPath := strings.TrimPrefix(image.FilePath, s.config.UploadDir+string(filepath.Separator))
-		relPath = strings.ReplaceAll(relPath, string(filepath.Separator), "/")
-		image.URL = fmt.Sprintf("%s/images/%s", s.config.BaseURL, relPath)
-	}
-
-	return images, nil
-}
-
 func (s *ImageService) GetByUserID(userID string) ([]*models.Image, error) {
 	images, err := s.repo.GetByUserID(userID)
 	if err != nil {
@@ -157,23 +135,8 @@ func (s *ImageService) GetByUserID(userID string) ([]*models.Image, error) {
 	for _, image := range images {
 		relPath := strings.TrimPrefix(image.FilePath, s.config.UploadDir+string(filepath.Separator))
 		relPath = strings.ReplaceAll(relPath, string(filepath.Separator), "/")
-		image.URL = fmt.Sprintf("%s/images/%s", s.config.BaseURL, relPath)
+		image.URL = s.buildImageURL(relPath)
 	}
 
 	return images, nil
-}
-
-func (s *ImageService) Delete(id string) error {
-	image, err := s.repo.GetByID(id)
-	if err != nil {
-		return err
-	}
-
-	// Удаляем файл
-	if err := os.Remove(image.FilePath); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("failed to delete file: %w", err)
-	}
-
-	// Удаляем из БД
-	return s.repo.Delete(id)
 }

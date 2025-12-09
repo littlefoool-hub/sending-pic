@@ -94,14 +94,6 @@ export default function ImageUploader() {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-
-      // Переход на страницу результата с данными (опционально)
-      // navigate('/result', {
-      //   state: {
-      //     imageUrl: preview,
-      //     imageLink: response.url,
-      //   },
-      // });
     } catch (err) {
       const errorMessage = err instanceof Error
         ? err.message

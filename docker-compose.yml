@@ -1,6 +1,15 @@
-version: '3.8'
-
 services:
+  database:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.db
+    container_name: image-uploader-database
+    volumes:
+      - database-data:/data
+    networks:
+      - app-network
+    restart: unless-stopped
+
   backend:
     build:
       context: ./backend
@@ -15,17 +24,19 @@ services:
       - BASE_URL=http://localhost:8080
       - SENTRY_DSN=${SENTRY_DSN:-}
     volumes:
-      - backend-data:/app/data
+      - database-data:/app/data
       - backend-uploads:/app/uploads
     networks:
       - app-network
     restart: unless-stopped
+    depends_on:
+      - database
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "-O", "-", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
       retries: 3
-      start_period: 40s
+      start_period: 10s
 
   frontend:
     build:
@@ -42,7 +53,7 @@ services:
     restart: unless-stopped
 
 volumes:
-  backend-data:
+  database-data:
     driver: local
   backend-uploads:
     driver: local
@@ -50,4 +61,3 @@ volumes:
 networks:
   app-network:
     driver: bridge
-

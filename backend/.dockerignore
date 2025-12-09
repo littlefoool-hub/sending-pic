@@ -1,0 +1,30 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+README.md
+
+# Environment files
+.env
+.env.local
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Database files (не копируем в образ, используем volumes)
+*.db
+*.db-shm
+*.db-wal
+
+# Uploads (не копируем в образ, используем volumes)
+uploads/
+
+# Build artifacts
+server
+*.exe
+

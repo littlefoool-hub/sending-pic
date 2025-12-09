@@ -6,6 +6,7 @@ import (
 	"errors"
 	"image-uploader-backend/internal/models"
 	"image-uploader-backend/internal/repository"
+	"strings"
 	"sync"
 	"time"
 
@@ -34,8 +35,10 @@ func (s *AuthService) Register(username, password, role string) (*models.User, e
 	// Проверяем, существует ли пользователь
 	_, err := s.userRepo.GetByUsername(username)
 	if err == nil {
+		// Пользователь уже существует
 		return nil, errors.New("username already exists")
 	}
+	// Если ошибка - это нормально (пользователь не найден), продолжаем
 
 	// Устанавливаем роль по умолчанию
 	if role == "" {
@@ -57,6 +60,10 @@ func (s *AuthService) Register(username, password, role string) (*models.User, e
 
 	err = s.userRepo.Create(user)
 	if err != nil {
+		// Проверяем, является ли ошибка нарушением UNIQUE constraint
+		if strings.Contains(err.Error(), "UNIQUE constraint") || strings.Contains(err.Error(), "unique constraint") {
+			return nil, errors.New("username already exists")
+		}
 		return nil, errors.New("failed to create user")
 	}
 

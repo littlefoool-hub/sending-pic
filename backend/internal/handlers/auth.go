@@ -52,9 +52,14 @@ func (h *AuthHandler) Register(c echo.Context) error {
 	// Регистрация
 	user, err := h.authService.Register(req.Username, req.Password, req.Role)
 	if err != nil {
+		// Проверяем тип ошибки для более детального сообщения
+		errorCode := "REGISTRATION_ERROR"
+		if err.Error() == "username already exists" {
+			errorCode = "USERNAME_EXISTS"
+		}
 		return c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Error: err.Error(),
-			Code:  "REGISTRATION_ERROR",
+			Code:  errorCode,
 		})
 	}
 
@@ -89,13 +94,6 @@ func (h *AuthHandler) Login(c echo.Context) error {
 	cookie.HttpOnly = true
 	cookie.Path = "/"
 	cookie.SameSite = http.SameSiteLaxMode
-
-	// Устанавливаем domain только если не localhost
-	domain := middleware.GetCookieDomain(c)
-	if domain != "" {
-		cookie.Domain = domain
-	}
-
 	c.SetCookie(cookie)
 
 	return c.JSON(http.StatusOK, models.LoginResponse{

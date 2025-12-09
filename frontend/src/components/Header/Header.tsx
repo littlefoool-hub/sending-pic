@@ -15,20 +15,17 @@ export default function Header() {
     return null;
   }
 
+  const logoLink = isAdmin ? '/admin/users' : '/upload';
+
   return (
     <header className={styles.header}>
       <div className={styles.content}>
-        <Link to="/upload" className={styles.logo}>
+        <Link to={logoLink} className={styles.logo}>
           Image Uploader
         </Link>
         
         <nav className={styles.nav}>
           <span className={styles.username}>Привет, {user.username}!</span>
-          {isAdmin && (
-            <Link to="/admin/users" className={styles.link}>
-              Админка
-            </Link>
-          )}
           <button onClick={handleLogout} className={styles.logoutButton}>
             Выйти
           </button>

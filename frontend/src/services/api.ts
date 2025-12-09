@@ -1,14 +1,9 @@
+import { User } from '../contexts/AuthContext';
+
 export interface UploadResponse {
   url: string;
   id: string;
   filename: string;
-}
-
-export interface User {
-  id: string;
-  username: string;
-  role: string;
-  created_at: string;
 }
 
 export interface LoginResponse {
@@ -31,19 +26,27 @@ async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
+  // Если headers не установлены или Content-Type не установлен, добавляем по умолчанию
+  const headers = new Headers(options.headers);
+  if (!headers.has('Content-Type') && options.body && typeof options.body === 'string') {
+    headers.set('Content-Type', 'application/json');
+  }
+
   const response = await fetch(endpoint, {
     ...options,
     credentials: 'include', // Важно для отправки cookies
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
+    headers,
   });
 
   if (!response.ok) {
-    const error: ErrorResponse = await response.json().catch(() => ({
-      error: `HTTP ${response.status}: ${response.statusText}`,
-    }));
+    let error: ErrorResponse;
+    try {
+      error = await response.json();
+    } catch {
+      error = {
+        error: `HTTP ${response.status}: ${response.statusText}`,
+      };
+    }
     throw new Error(error.error || `HTTP ${response.status}`);
   }
 
@@ -51,10 +54,10 @@ async function apiRequest<T>(
 }
 
 // Аутентификация
-export async function register(username: string, password: string): Promise<User> {
+export async function register(username: string, password: string, role: string = 'user'): Promise<User> {
   const response: AuthResponse = await apiRequest<AuthResponse>('/api/auth/register', {
     method: 'POST',
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ username, password, role }),
   });
   return response.user;
 }

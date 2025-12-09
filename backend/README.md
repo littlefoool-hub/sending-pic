@@ -4,9 +4,9 @@
 
 ## Требования
 
-- Go 1.21+
-- SQLite (встроен в Go через CGO, или используйте Docker)
-- Docker (опционально)
+- Go 1.24+
+- SQLite (используется pure Go драйвер `modernc.org/sqlite`, CGO не требуется)
+- Docker (опционально, но рекомендуется)
 
 ## Установка
 
@@ -29,8 +29,41 @@ go run ./cmd/server/main.go
 
 ## API Endpoints
 
+### Аутентификация
+
+#### Регистрация
+- **POST** `/api/auth/register`
+- Тело запроса:
+```json
+{
+  "username": "user123",
+  "password": "password123",
+  "role": "user"
+}
+```
+
+#### Вход
+- **POST** `/api/auth/login`
+- Тело запроса:
+```json
+{
+  "username": "user123",
+  "password": "password123"
+}
+```
+
+#### Выход
+- **POST** `/api/auth/logout`
+- Требует аутентификации
+
+#### Получить текущего пользователя
+- **GET** `/api/auth/me`
+- Требует аутентификации
+- Возвращает данные текущего пользователя
+
 ### Загрузка изображения
 - **POST** `/api/upload`
+- Требует аутентификации (только обычные пользователи, не админы)
 - Формат: `multipart/form-data`
 - Поле: `image`
 - Ответ: 
@@ -42,21 +75,22 @@ go run ./cmd/server/main.go
 }
 ```
 
-### Получить все изображения (админка)
-- **GET** `/api/admin/images?limit=50&offset=0`
-- Ответ: массив объектов Image
+### Административные endpoints
 
-### Удалить изображение (админка)
-- **DELETE** `/api/admin/images/:id`
-- Ответ: 
-```json
-{
-  "message": "Image deleted successfully"
-}
-```
+#### Получить список пользователей
+- **GET** `/api/admin/users`
+- Требует роль администратора
+- Ответ: массив пользователей с количеством изображений
 
-### Health check
-- **GET** `/health`
+#### Получить изображения пользователя
+- **GET** `/api/admin/users/:id/images`
+- Требует роль администратора
+- Ответ: массив изображений конкретного пользователя
+
+### Прочие endpoints
+
+#### Health check
+- **GET** `/health` или **HEAD** `/health`
 - Ответ: 
 ```json
 {
@@ -64,7 +98,7 @@ go run ./cmd/server/main.go
 }
 ```
 
-### Получить изображение
+#### Получить изображение
 - **GET** `/images/YYYY/MM/DD/filename.jpg`
 - Возвращает изображение напрямую
 
@@ -74,14 +108,28 @@ go run ./cmd/server/main.go
 backend/
 ├── cmd/
 │   └── server/
-│       └── main.go          # Точка входа
+│       └── main.go          # Точка входа, создание таблиц
 ├── internal/
 │   ├── handlers/            # HTTP обработчики
+│   │   ├── auth.go         # Аутентификация
+│   │   ├── upload.go       # Загрузка изображений
+│   │   └── admin.go        # Административные endpoints
 │   ├── service/             # Бизнес-логика
+│   │   ├── auth.go         # Сервис аутентификации
+│   │   └── image.go        # Сервис работы с изображениями
 │   ├── repository/          # Работа с БД
+│   │   ├── user.go         # Репозиторий пользователей
+│   │   └── image.go        # Репозиторий изображений
 │   ├── models/              # Модели данных
+│   │   ├── user.go
+│   │   ├── image.go
+│   │   └── auth.go
+│   ├── middleware/          # Middleware
+│   │   └── auth.go         # Проверка аутентификации и ролей
 │   └── config/              # Конфигурация
-├── migrations/              # SQL миграции
+│       └── config.go
+├── Dockerfile               # Dockerfile для бэкенда
+├── Dockerfile.db            # Dockerfile для контейнера БД
 ├── database.db              # SQLite база данных (создается автоматически)
 └── uploads/                 # Загруженные файлы
 ```
@@ -98,9 +146,9 @@ docker build -t image-uploader-backend .
 docker run -p 8080:8080 -v $(pwd)/database.db:/app/database.db -v $(pwd)/uploads:/app/uploads image-uploader-backend
 ```
 
-## Миграции
+## База данных
 
-Миграции запускаются автоматически при старте приложения.
+Таблицы создаются автоматически при первом запуске приложения через SQL запросы в `main.go`.
 
 ## Переменные окружения
 
