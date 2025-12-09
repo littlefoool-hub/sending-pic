@@ -1,0 +1,20 @@
+version: '3.8'
+
+# Development override для docker-compose
+# Использование: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  backend:
+    environment:
+      - BASE_URL=http://localhost:8080
+    volumes:
+      # Монтируем исходный код для hot reload (опционально, если нужен)
+      - ./backend:/app:cached
+      - backend-data:/app/data
+      - backend-uploads:/app/uploads
+
+  frontend:
+    volumes:
+      # Монтируем исходный код для разработки
+      - ./frontend/src:/app/src:cached
+

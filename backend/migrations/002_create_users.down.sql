@@ -1,0 +1,4 @@
+DROP INDEX IF EXISTS idx_role;
+DROP INDEX IF EXISTS idx_username;
+DROP TABLE IF EXISTS users;
+

@@ -1,0 +1,17 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+*.md
+.env
+.env.local
+.DS_Store
+.vscode
+.idea
+*.swp
+*.swo
+backend/uploads/
+backend/database.db
+backend/database.db-shm
+backend/database.db-wal
+
